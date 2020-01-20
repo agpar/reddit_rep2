@@ -14,6 +14,11 @@ class GAT(nn.Module):
         self.K = K
         self.adj = adj # adjacency matrix. adj[i,:] is neighbors of ith node
 
+        """
+        Registering W and a as `Parameters` means that forward operations on them will be tracked
+        so that a backwards (optimizing) pass can be derived. See the function `train()` at the
+        bottom of this module for how easy pytorch makes this.
+        """
         self.W = nn.Parameter(torch.rand(K, output_size, input_size))
         self.a = nn.Parameter(torch.rand(K, 1, 2*output_size))
 
