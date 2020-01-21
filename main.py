@@ -4,7 +4,7 @@ from reddit_data import RedditTrees, JsonDataSource
 # 2. Use filter_subreddits.py to produce a single file containing only the subreddits you care about.
 # 3. Look at example below on how to load a filtered json file and iterate over trees of comments.
 
-path_to_json_data = "/home/alex/Documents/reddit_rep2/reddit_data/sample_data.json"
+path_to_json_data = ""
 jds = JsonDataSource(path_to_json_data)
 rt = RedditTrees(jds)
 
