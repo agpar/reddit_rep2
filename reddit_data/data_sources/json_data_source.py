@@ -1,6 +1,6 @@
 import json
 from collections import defaultdict
-from typing import Collection
+from typing import Collection, Iterable
 
 from reddit_data.data_models import RedditComment
 from reddit_data.data_sources.data_source import DataSource
@@ -28,3 +28,9 @@ class JsonDataSource(DataSource):
 
     def get_children(self, parent_id: str) -> Collection[RedditComment]:
         return self.comments_by_parent_id.get(parent_id, set())
+
+    def get_roots(self) -> Iterable[RedditComment]:
+        for comment in self.comments_by_id.values():
+            if comment.is_root():
+                yield comment
+
