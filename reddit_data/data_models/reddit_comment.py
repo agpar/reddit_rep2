@@ -1,3 +1,5 @@
+
+
 class RedditComment():
     __slots__ = ('id', 'author', 'subreddit', 'score', 'body',  'parent_id', 'gilded', 'stickied', 'retrieved_on',
                  'created_utc', 'link_id', 'controversiality')
@@ -7,7 +9,7 @@ class RedditComment():
         rc = RedditComment()
 
         # Note: t1_ prefix is added to create "full ids" as described here: https://www.reddit.com/dev/api/
-        rc.id = f't1_{comment["id"]}'
+        rc.id = f't1_{comment["id"]}' if not comment['id'].startswith('t1_') else comment['id']
         rc.author = comment['author']
         rc.subreddit = comment['subreddit']
         rc.score = comment['score']

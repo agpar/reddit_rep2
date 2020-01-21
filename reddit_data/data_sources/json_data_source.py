@@ -2,8 +2,8 @@ import json
 from collections import defaultdict
 from typing import Collection
 
+from reddit_data.data_models import RedditComment
 from reddit_data.data_sources.data_source import DataSource
-from reddit_data.reddit_comment import RedditComment
 
 
 class JsonDataSource(DataSource):

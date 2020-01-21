@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Collection
-from reddit_data.reddit_comment import RedditComment
+
+from reddit_data.data_models import RedditComment
 
 
 class DataSource(ABC):
