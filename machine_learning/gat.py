@@ -11,6 +11,7 @@ class GAT(nn.Module):
         self.input_size = input_size
         self.output_size = output_size
         self.K = K
+        # Adj is a sparse tensor
         self.adj = adj # adjacency matrix. adj[i,:] is neighbors of ith node
 
         """
@@ -30,7 +31,8 @@ class GAT(nn.Module):
                 one_head_result = self.compute_embedding(X, i, k)
                 multi_head_results = torch.cat((multi_head_results, one_head_result), dim=1)
             results = torch.cat((results, multi_head_results), dim=0)
-        return results
+        # nonlinear function should be here (e.g. softmax or logistic sigmoid)
+        return torch.mean(results, 1)
 
     def compute_embedding(self, X, i, k):
         """Compute the k'th embedding of the i'th node"""
@@ -54,7 +56,8 @@ class GAT(nn.Module):
 
     def sample_neighborhood(self, i):
         """Currently return all neighbours"""
-        return (self.adj[i,:] != 0).nonzero()
+        #return (self.adj[i,:] != 0).nonzero()
+        return self.adj[i].coalesce().indices()
 
 
 # A simple function to train a net.
