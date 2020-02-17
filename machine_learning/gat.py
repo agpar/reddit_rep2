@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-
 class GAT(nn.Module):
 
     def __init__(self, input_size, output_size, K, adj):
@@ -11,7 +10,7 @@ class GAT(nn.Module):
         self.input_size = input_size
         self.output_size = output_size
         self.K = K
-        self.adj = adj # adjacency matrix. adj[i,:] is neighbors of ith node
+        self.adj = adj # adjacency matrix. adj is a sparse tensor
 
         """
         Registering W and a as `Parameters` means that forward operations on them will be tracked
@@ -27,7 +26,7 @@ class GAT(nn.Module):
         for i, x in enumerate(X):
             multi_head_results = torch.empty(1, 0)
             for k in range(self.K):
-                one_head_result = self.compute_embedding(X, i, k)
+                one_head_result = F.leaky_relu(self.compute_embedding(X, i, k))
                 multi_head_results = torch.cat((multi_head_results, one_head_result), dim=1)
             results = torch.cat((results, multi_head_results), dim=0)
         return results
@@ -43,7 +42,7 @@ class GAT(nn.Module):
         neighbours = X[self.sample_neighborhood(i)].view(-1, self.input_size)
         mapped_neighbours = neighbours.mm(W.t())
         mapped_x_repeat = x.view(1, -1).mm(W.t()).repeat(neighbours.shape[0], 1)
-        neighbour_cat_x = torch.cat((mapped_neighbours, mapped_x_repeat), dim=1)
+        neighbour_cat_x = torch.cat((mapped_x_repeat, mapped_neighbours), dim=1)
 
         # Compute the weights given to each of the neighbours based on
         # the attention function.
@@ -54,7 +53,24 @@ class GAT(nn.Module):
 
     def sample_neighborhood(self, i):
         """Currently return all neighbours"""
-        return (self.adj[i,:] != 0).nonzero()
+        return self.adj[i].coalesce().indices()
+
+class GATFinal(GAT):
+    def __init__(self, input_size, output_size, K, adj):
+        super(GATFinal, self).__init__(input_size, output_size, K, adj)
+
+    def forward(self, X):
+        """
+        Instead of concatenating the results, they should be averaged for predictions
+        """
+        results = torch.empty(0, self.output_size * self.K)
+        for i, x in enumerate(X):
+            multi_head_results = torch.empty(1, 0)
+            for k in range(self.K):
+                one_head_result = self.compute_embedding(X, i, k)
+                multi_head_results = torch.cat((multi_head_results, one_head_result), dim=1)
+            results = torch.cat((results, multi_head_results), dim=0)
+        return F.softmax((1/self.K) * torch.reshape(sum(torch.chunk(results, self.K)), (-1,)), 0)
 
 
 # A simple function to train a net.
