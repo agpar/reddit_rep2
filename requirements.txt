@@ -1,2 +1,4 @@
+bcolz
 torch
 torchtest
+torchtext
