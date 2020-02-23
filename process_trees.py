@@ -30,14 +30,6 @@ def dfs(tree):
         for child in node.children:
             queue.append(child)
 
-def create_adj_matrix(edges, id_to_index):
-    def add_edge(node):
-        index = id_to_index[node.comment.id]
-        for child in node.children:
-            child_index = id_to_index[child.comment.id]
-            edges.append([index, child_index])
-    return add_edge
-
 def get_tree_indices(tree):
     return {node.comment.id: index for index, node in enumerate(dfs(tree))}
 
