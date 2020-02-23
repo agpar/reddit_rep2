@@ -20,17 +20,6 @@ word2idx = pickle.load(open(f'{glove_path}/6B.50_idx.pkl', 'rb'))
 glove = {w: word_vectors[word2idx[w]] for w in words}
 tokenizer = get_tokenizer("basic_english")
 
-# Load reddit data
-path_to_json_data = "reddit_data/RC_2006-12" # for example, use comments from 2006
-jds = JsonDataSource(path_to_json_data)
-rt = RedditTrees(jds)
-
-all_roots = list(jds.get_roots())
-all_trees = [rt.get_tree_rooted_at(c) for c in all_roots]
-
-with open("reddit_tree.pkl", 'rb') as input:
-    tree = pickle.load(input)
-
 # Depth first search as a generator
 def dfs(tree):
     queue = deque()
@@ -40,15 +29,6 @@ def dfs(tree):
         yield node
         for child in node.children:
             queue.append(child)
-
-# helper method to assign each node an index, and extract comment text
-# def create_get_node_id(id_to_idx):
-#     count = 0
-#     def get_node_id(node):
-#         nonlocal count
-#         id_to_idx[node.comment.id] = count
-#         count += 1
-#     return process_node_id
 
 def create_adj_matrix(edges, id_to_index):
     def add_edge(node):
@@ -91,35 +71,24 @@ def get_tree_text_embedding(texts):
     concat_text = torch.cat(text_lst)
     return concat_text, offsets
 
-# Returns a tuple of (adj_matrix, tensor(text_embedding)) for a given RedditTree
-# def get_tree_representation(tree):
-#     id_to_index = dict()
-#     node_edges = []
-# 
-#     # Iterate through tree to extract text and graph structure
-#     process_nodes = create_process_node_id(id_to_index, text_nodes)
-#     dfs(tree, process_nodes)
-#     process_edges = create_adj_matrix(node_edges, id_to_index)
-#     dfs(tree, process_edges)
-# 
-#     # Generate adjacency matrix as sparse tensor
-#     edges = torch.LongTensor(node_edges)
-#     ones = torch.ones(edges.size(0))
-#     adj_matrix = torch.sparse.IntTensor(edges.t(), ones)
-# 
-#     # Convert text into embedding
-#     text_tensors = [torch.tensor([(word2idx[token] if token in glove else word2idx[UNKNOWN_WORD])
-#         for token in ngrams_iterator(tokenizer(text), 1)]) for text in text_nodes]
-# 
-#     return (adj_matrix, text_tensors)
-
 # Returns the output to predict for all Reddit trees
 # In this case, it is binary if scores are above or equal to 1, the default Reddit score
 def get_output(trees):
     return torch.tensor([tree.comment.score >= 1 for tree in trees])
 
-tree_indices = get_tree_indices(tree)
-adj_mat = get_adj_matrix(tree, tree_indices)
-texts = get_tree_text(tree)
-embedding, offsets = get_tree_text_embedding(texts)
+if __name__ == "__main__":
+    # Load reddit data
+    path_to_json_data = "reddit_data/RC_2006-12" # for example, use comments from 2006
+    jds = JsonDataSource(path_to_json_data)
+    rt = RedditTrees(jds)
+
+    all_roots = list(jds.get_roots())
+    all_trees = [rt.get_tree_rooted_at(c) for c in all_roots]
+
+    tree = all_trees[2]
+
+    tree_indices = get_tree_indices(tree)
+    adj_mat = get_adj_matrix(tree, tree_indices)
+    texts = get_tree_text(tree)
+    embedding, offsets = get_tree_text_embedding(texts)
 
