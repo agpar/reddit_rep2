@@ -5,12 +5,11 @@ import torch.optim as optim
 
 class GAT(nn.Module):
 
-    def __init__(self, input_size, output_size, K, adj):
+    def __init__(self, input_size, output_size, K):
         super(GAT, self).__init__()
         self.input_size = input_size
         self.output_size = output_size
         self.K = K
-        self.adj = adj # adjacency matrix. adj is a sparse tensor
 
         """
         Registering W and a as `Parameters` means that forward operations on them will be tracked
@@ -20,18 +19,18 @@ class GAT(nn.Module):
         self.W = nn.Parameter(torch.rand(K, output_size, input_size))
         self.a = nn.Parameter(torch.rand(K, 1, 2*output_size))
 
-    def forward(self, X):
+    def forward(self, X, adj):
         """Expecting to be passed the entire graph in X."""
         results = torch.empty(0, self.output_size * self.K)
         for i, x in enumerate(X):
             multi_head_results = torch.empty(1, 0)
             for k in range(self.K):
-                one_head_result = F.leaky_relu(self.compute_embedding(X, i, k))
+                one_head_result = F.leaky_relu(self.compute_embedding(X, i, k, adj))
                 multi_head_results = torch.cat((multi_head_results, one_head_result), dim=1)
             results = torch.cat((results, multi_head_results), dim=0)
         return results
 
-    def compute_embedding(self, X, i, k):
+    def compute_embedding(self, X, i, k, adj):
         """Compute the k'th embedding of the i'th node"""
         a = self.a[k]
         W = self.W[k]
@@ -39,7 +38,7 @@ class GAT(nn.Module):
 
         # Construct a matrix where each row is the mapped result of x and
         # one of its neighbours concated.
-        neighbours = X[self.sample_neighborhood(i)].view(-1, self.input_size)
+        neighbours = X[self.sample_neighborhood(i, adj)].view(-1, self.input_size)
         mapped_neighbours = neighbours.mm(W.t())
         mapped_x_repeat = x.view(1, -1).mm(W.t()).repeat(neighbours.shape[0], 1)
         neighbour_cat_x = torch.cat((mapped_x_repeat, mapped_neighbours), dim=1)
@@ -51,15 +50,15 @@ class GAT(nn.Module):
         # Combine mapped neighbours based on attention weighting.
         return (mapped_neighbours.t().mm(attention)).t()
 
-    def sample_neighborhood(self, i):
+    def sample_neighborhood(self, i, adj):
         """Currently return all neighbours"""
-        return self.adj[i].coalesce().indices()
+        return adj[i].coalesce().indices()
 
 class GATFinal(GAT):
-    def __init__(self, input_size, output_size, K, adj):
-        super(GATFinal, self).__init__(input_size, output_size, K, adj)
+    def __init__(self, input_size, output_size, K):
+        super(GATFinal, self).__init__(input_size, output_size, K)
 
-    def forward(self, X):
+    def forward(self, X, adj):
         """
         Instead of concatenating the results, they should be averaged for predictions
         """
@@ -67,7 +66,7 @@ class GATFinal(GAT):
         for i, x in enumerate(X):
             multi_head_results = torch.empty(1, 0)
             for k in range(self.K):
-                one_head_result = self.compute_embedding(X, i, k)
+                one_head_result = self.compute_embedding(X, i, k, adj)
                 multi_head_results = torch.cat((multi_head_results, one_head_result), dim=1)
             results = torch.cat((results, multi_head_results), dim=0)
         return F.softmax((1/self.K) * torch.reshape(sum(torch.chunk(results, self.K)), (-1,)), 0)

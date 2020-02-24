@@ -2,21 +2,22 @@ from collections import deque
 import pickle
 #
 import torch
-import bcolz
+# import bcolz
 from torchtext.data.utils import get_tokenizer
 #
 from reddit_data import RedditTrees, JsonDataSource
+from machine_learning.glove_embedding import UNKNOWN_WORD, glove, word2idx
 
-UNKNOWN_WORD = "[unk]"
-
-# Setup glove embedding
-glove_path = "machine_learning/glove"
-
-word_vectors = bcolz.open(f'{glove_path}/6B.50.dat')[:]
-words = pickle.load(open(f'{glove_path}/6B.50_words.pkl', 'rb'))
-word2idx = pickle.load(open(f'{glove_path}/6B.50_idx.pkl', 'rb'))
-
-glove = {w: word_vectors[word2idx[w]] for w in words}
+# UNKNOWN_WORD = "[unk]"
+# 
+# # Setup glove embedding
+# glove_path = "machine_learning/glove"
+# 
+# word_vectors = bcolz.open(f'{glove_path}/6B.50.dat')[:]
+# words = pickle.load(open(f'{glove_path}/6B.50_words.pkl', 'rb'))
+# word2idx = pickle.load(open(f'{glove_path}/6B.50_idx.pkl', 'rb'))
+# 
+# glove = {w: word_vectors[word2idx[w]] for w in words}
 tokenizer = get_tokenizer("basic_english")
 
 # Breadth first search as a generator
@@ -78,7 +79,7 @@ if __name__ == "__main__":
 
     tree = all_trees[2]
 
-    tree_indices = get_tree_indices(tree)
+    tree_indices = assign_indices_to_nodes(tree)
     adj_mat = get_adj_matrix(tree, tree_indices)
     texts = get_tree_text(tree)
     embedding, offsets = get_tree_text_embedding(texts)
