@@ -3,6 +3,7 @@ import bcolz
 import pickle
 
 UNKNOWN_WORD = "[unk]"
+EMBED_DIM = 50
 
 # Setup glove embedding
 script_dir = os.path.dirname(__file__)
