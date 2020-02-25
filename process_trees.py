@@ -1,4 +1,3 @@
-from collections import deque
 import pickle
 #
 import torch
@@ -9,40 +8,29 @@ from machine_learning.glove_embedding import UNKNOWN_WORD, glove, word2idx
 
 tokenizer = get_tokenizer("basic_english")
 
-# Breadth first search as a generator
-def bfs(tree):
-    queue = deque()
-    queue.append(tree)
-    while(queue):
-        node = queue.popleft()
-        yield node
-        for child in node.children:
-            queue.append(child)
 
-def assign_indices_to_nodes(tree):
-    return {node.comment.id: index for index, node in enumerate(bfs(tree))}
-
-# helper method to create an ajacency matrix given a mapping from each node to an index
-# The id_to_index mapping is passed to simplify the logic
-def get_adj_matrix(tree, id_to_index):
+# helper method to create an adjacency matrix given a tree of RedditNodes
+def get_adj_matrix(tree):
     node_edges = []
-    for node in bfs(tree):
-        index = id_to_index[node.comment.id]
+    for node in tree:
+        index = node.index
         node_edges.append([index, index]) # a node is its own neighbour
         for child in node.children:
-            child_index = id_to_index[child.comment.id]
-            node_edges.append([index, child_index])
+            node_edges.append([index, child.index])
 
     edges = torch.LongTensor(node_edges)
     ones = torch.ones(edges.size(0))
     adj_matrix = torch.sparse.IntTensor(edges.t(), ones)
     return adj_matrix
 
+
 def get_tree_text(tree):
-    return [node.comment.body for node in bfs(tree)]
+    return [node.comment.body for node in tree]
+
 
 def get_text_embedding(text):
     return torch.tensor([(word2idx[token] if token in glove else word2idx[UNKNOWN_WORD]) for token in tokenizer(text)])
+
 
 # Using an EmbeddingBag, the api requires text to be concatenated and offsets for each text to be specified
 def get_tree_text_embedding(texts):
@@ -53,10 +41,12 @@ def get_tree_text_embedding(texts):
     concat_text = torch.cat(text_lst)
     return concat_text, offsets
 
+
 # Returns the output to predict for all Reddit trees
 # In this case, it is binary if scores are above or equal to 1, the default Reddit score
 def get_output(tree):
-    return torch.FloatTensor([node.comment.score >= 1 for node in bfs(tree)])
+    return torch.FloatTensor([node.comment.score >= 1 for node in tree])
+
 
 if __name__ == "__main__":
     # Load reddit data
@@ -69,8 +59,7 @@ if __name__ == "__main__":
 
     tree = all_trees[2]
 
-    tree_indices = assign_indices_to_nodes(tree)
-    adj_mat = get_adj_matrix(tree, tree_indices)
+    adj_mat = get_adj_matrix(tree)
     texts = get_tree_text(tree)
     embedding, offsets = get_tree_text_embedding(texts)
     outputs = get_output(tree)

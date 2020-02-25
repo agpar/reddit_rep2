@@ -8,6 +8,9 @@ class RedditTrees:
         self.data = data_source
 
     def get_tree_rooted_at(self, parent_comment: RedditComment) -> RedditNode:
+        return self._assign_indexes(self._build_tree(parent_comment))
+
+    def _build_tree(self, parent_comment):
         if parent_comment is None:
             return None
 
@@ -19,5 +22,13 @@ class RedditTrees:
                 parent_node.children.append(self.get_tree_rooted_at(child_comment))
 
         return parent_node
+
+    def _assign_indexes(self, tree):
+        index = 0
+        for node in tree:
+            node.index = index
+            index += 1
+        return tree
+
 
 
