@@ -16,7 +16,7 @@ class RedditTreeBuilder:
 
         parent_node = RedditNode(parent_comment)
         child_comments = self.data.get_children(parent_comment.id)
-        for child_comment in child_comments:
+        for child_comment in sorted(child_comments):
             child_node = self.get_tree_rooted_at(child_comment)
             if child_node is not None:
                 parent_node.children.append(self.get_tree_rooted_at(child_comment))

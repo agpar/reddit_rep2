@@ -47,3 +47,6 @@ class RedditComment():
 
     def __eq__(self, other):
         return self.id == other.id
+
+    def __lt__(self, other):
+        return self.id < other.id
