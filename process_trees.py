@@ -2,26 +2,15 @@ from collections import deque
 import pickle
 #
 import torch
-import bcolz
-from torchtext.data.utils import ngrams_iterator
 from torchtext.data.utils import get_tokenizer
 #
 from reddit_data import RedditTrees, JsonDataSource
+from machine_learning.glove_embedding import UNKNOWN_WORD, glove, word2idx
 
-UNKNOWN_WORD = "[unk]"
-
-# Setup glove embedding
-glove_path = "machine_learning/glove"
-
-word_vectors = bcolz.open(f'{glove_path}/6B.50.dat')[:]
-words = pickle.load(open(f'{glove_path}/6B.50_words.pkl', 'rb'))
-word2idx = pickle.load(open(f'{glove_path}/6B.50_idx.pkl', 'rb'))
-
-glove = {w: word_vectors[word2idx[w]] for w in words}
 tokenizer = get_tokenizer("basic_english")
 
-# Depth first search as a generator
-def dfs(tree):
+# Breadth first search as a generator
+def bfs(tree):
     queue = deque()
     queue.append(tree)
     while(queue):
@@ -30,23 +19,16 @@ def dfs(tree):
         for child in node.children:
             queue.append(child)
 
-def create_adj_matrix(edges, id_to_index):
-    def add_edge(node):
-        index = id_to_index[node.comment.id]
-        for child in node.children:
-            child_index = id_to_index[child.comment.id]
-            edges.append([index, child_index])
-    return add_edge
-
-def get_tree_indices(tree):
-    return {node.comment.id: index for index, node in enumerate(dfs(tree))}
+def assign_indices_to_nodes(tree):
+    return {node.comment.id: index for index, node in enumerate(bfs(tree))}
 
 # helper method to create an ajacency matrix given a mapping from each node to an index
 # The id_to_index mapping is passed to simplify the logic
 def get_adj_matrix(tree, id_to_index):
     node_edges = []
-    for node in dfs(tree):
+    for node in bfs(tree):
         index = id_to_index[node.comment.id]
+        node_edges.append([index, index]) # a node is its own neighbour
         for child in node.children:
             child_index = id_to_index[child.comment.id]
             node_edges.append([index, child_index])
@@ -54,13 +36,13 @@ def get_adj_matrix(tree, id_to_index):
     edges = torch.LongTensor(node_edges)
     ones = torch.ones(edges.size(0))
     adj_matrix = torch.sparse.IntTensor(edges.t(), ones)
-    return edges
+    return adj_matrix
 
 def get_tree_text(tree):
-    return [node.comment.body for node in dfs(tree)]
+    return [node.comment.body for node in bfs(tree)]
 
 def get_text_embedding(text):
-    return torch.tensor([(word2idx[token] if token in glove else word2idx[UNKNOWN_WORD]) for token in ngrams_iterator(tokenizer(text), 1)])
+    return torch.tensor([(word2idx[token] if token in glove else word2idx[UNKNOWN_WORD]) for token in tokenizer(text)])
 
 # Using an EmbeddingBag, the api requires text to be concatenated and offsets for each text to be specified
 def get_tree_text_embedding(texts):
@@ -73,8 +55,8 @@ def get_tree_text_embedding(texts):
 
 # Returns the output to predict for all Reddit trees
 # In this case, it is binary if scores are above or equal to 1, the default Reddit score
-def get_output(trees):
-    return torch.tensor([tree.comment.score >= 1 for tree in trees])
+def get_output(tree):
+    return torch.FloatTensor([node.comment.score >= 1 for node in bfs(tree)])
 
 if __name__ == "__main__":
     # Load reddit data
@@ -87,8 +69,16 @@ if __name__ == "__main__":
 
     tree = all_trees[2]
 
-    tree_indices = get_tree_indices(tree)
+    tree_indices = assign_indices_to_nodes(tree)
     adj_mat = get_adj_matrix(tree, tree_indices)
     texts = get_tree_text(tree)
     embedding, offsets = get_tree_text_embedding(texts)
+    outputs = get_output(tree)
 
+    model_data = {
+        "adj_matrix": adj_mat,
+        "embedding": embedding,
+        "offsets": offsets,
+        "outputs": outputs
+    }
+    pickle.dump(model_data, open('machine_learning/sample_data.pkl', 'wb'))
