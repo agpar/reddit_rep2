@@ -3,7 +3,7 @@ from reddit_data.data_models.reddit_node import RedditNode
 from reddit_data.data_sources.data_source import DataSource
 
 
-class RedditTrees:
+class RedditTreeBuilder:
     def __init__(self, data_source: DataSource):
         self.data = data_source
 
