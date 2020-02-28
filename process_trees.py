@@ -40,7 +40,7 @@ def get_tree_text_embedding(texts):
 # Returns the output to predict for all Reddit trees
 # In this case, it is binary if scores are above or equal to 1, the default Reddit score
 def get_output(tree):
-    return torch.FloatTensor([node.comment.score >= 1 for node in tree])
+    return torch.FloatTensor([([1, 0] if node.comment.score >= 1 else [0, 1]) for node in tree])
 
 
 def get_tree_values(tree):
@@ -68,6 +68,7 @@ def combine_tree_values(trees):
 
     # Construct combined adjacency matrix
     num_nodes = [0] + [len(tree["outputs"]) for tree in trees]
+    num_nodes = torch.tensor(num_nodes).cumsum(dim=0)
     edges = torch.cat(
         [tree["adj_matrix"].coalesce().indices() + num_nodes[i] for i, tree in enumerate(trees)],
         dim=1
@@ -87,24 +88,17 @@ def combine_tree_values(trees):
     return model_data
 
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
 # Load reddit data
-# path_to_json_data = "reddit_data/RC_2006-12" # for example, use comments from 2006
-# jds = JsonDataSource(path_to_json_data)
-# rt = RedditTreeBuilder(jds)
-# 
-# all_roots = list(jds.get_roots())
-# all_trees = [rt.get_tree_rooted_at(c) for c in all_roots]
+    path_to_json_data = "reddit_data/RC_2006-12" # for example, use comments from 2006
+    jds = JsonDataSource(path_to_json_data)
+    rt = RedditTreeBuilder(jds)
 
-with open("tree_test.pkl", 'rb') as input:
-    tree_data = pickle.load(input)
+    all_roots = list(jds.get_roots())
+    all_trees = [rt.get_tree_rooted_at(c) for c in all_roots]
 
-# tree = all_trees[2]
+    training_trees = all_trees[:100]
+    tree_data = [get_tree_values(tree) for tree in training_trees]
 
-# adj_mat = get_adj_matrix(tree)
-# texts = get_tree_text(tree)
-# embedding, offsets = get_tree_text_embedding(texts)
-# outputs = get_output(tree)
-data = combine_tree_values(tree_data)
-
-# pickle.dump(model_data, open('machine_learning/sample_data.pkl', 'wb'))
+    model_data = combine_tree_values(tree_data)
+    pickle.dump(model_data, open('machine_learning/sample_data.pkl', 'wb'))

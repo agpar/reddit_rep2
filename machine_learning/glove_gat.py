@@ -12,7 +12,7 @@ class GloveGAT(nn.Module):
     def __init__(self):
         super().__init__()
         self.embedding = nn.EmbeddingBag.from_pretrained(torch.tensor(word_vectors))
-        self.gat = GATFinal(EMBED_DIM, output_size=1, K=1)
+        self.gat = GATFinal(EMBED_DIM, output_size=2, K=1)
 
     def forward(self, inputs, offsets, adj_matrix):
         embedded = self.embedding(inputs, offsets).float()
