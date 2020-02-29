@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data.dataset import random_split
 from ignite.engine import Engine, Events
-from ignite.metrics import Accuracy, Loss, Precision, Recall
+from ignite.metrics import Accuracy, Precision, Recall
 #
 from gat import GATFinal
 from glove_embedding import EMBED_DIM, word_vectors
@@ -82,6 +82,15 @@ def train(model, data, lr=0.01):
     print(f"loss: {overall_loss: .4f}")
     print(f"acc: {overall_acc: .4f}")
 
+
+with open("sample_data.pkl", 'rb') as input:
+    model_data = pickle.load(input)
+
+model = GloveGAT()
+optimizer = optim.SGD(model.parameters(), lr=0.001)
+criterion = nn.MSELoss()
+sub_train, sub_valid = create_train_and_test(model_data)
+
 def update_model(engine, batch):
     adj_matrix = batch["adj_matrix"]
     inputs = batch["embedding"]
@@ -95,9 +104,42 @@ def update_model(engine, batch):
     optimizer.step()
     return loss.item()
 
-with open("sample_data.pkl", 'rb') as input:
-    model_data = pickle.load(input)
+def predict_on_batch(engine, batch):
+    model.eval()
+    adj_matrix = batch["adj_matrix"]
+    inputs = batch["embedding"]
+    offsets = batch["offsets"]
+    y = batch["outputs"].argmax(1)
+    with torch.no_grad():
+        y_pred = model(inputs, offsets, adj_matrix).argmax(1)
+    return y_pred, y
 
-model = GloveGAT()
+trainer = Engine(update_model)
+evaluator = Engine(predict_on_batch)
+Accuracy().attach(evaluator, "accuracy")
+Precision().attach(evaluator, "precision")
+Recall().attach(evaluator, "recall")
 
-train(model, model_data)
+@trainer.on(Events.ITERATION_COMPLETED(every=100))
+def log_training(engine):
+    batch_loss = engine.state.output
+    lr = optimizer.param_groups[0]['lr']
+    epoch = engine.state.epoch
+    max_epochs = engine.state.max_epochs
+    iteration = engine.state.iteration
+    print(f"Epoch {epoch}/{max_epochs} : {iteration} - batch loss: {batch_loss: .4f}, lr: {lr}")
+
+@trainer.on(Events.EPOCH_COMPLETED)
+def log_validation_results(trainer):
+    evaluator.run(sub_valid)
+    metrics = evaluator.state.metrics
+    epoch = trainer.state.epoch
+
+    accuracy = metrics['accuracy']
+    precision = metrics['precision']
+    recall = metrics['recall']
+    print(f"Validation Results - Epoch: {epoch} "\
+          f"Avg accuracy: {accuracy:.2f} Avg precision: {precision:.2f} Avg recall: {recall:.2f}")
+
+trainer.run(sub_train, max_epochs=5)
+
