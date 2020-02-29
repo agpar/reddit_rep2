@@ -62,14 +62,17 @@ class GATFinal(GAT):
         """
         Instead of concatenating the results, they should be averaged for predictions
         """
-        results = torch.empty(0, self.output_size * self.K)
+        results = torch.empty(0, self.output_size)
         for i, x in enumerate(X):
             multi_head_results = torch.empty(1, 0)
             for k in range(self.K):
                 one_head_result = self.compute_embedding(X, i, k, adj)
                 multi_head_results = torch.cat((multi_head_results, one_head_result), dim=1)
-            results = torch.cat((results, multi_head_results), dim=0)
-        return F.softmax((1/self.K) * torch.reshape(sum(torch.chunk(results, self.K)), (-1,)), 0)
+
+            avg_results = (1/self.K) * sum(torch.chunk(multi_head_results.view(-1,), self.K))
+            results = torch.cat((results, avg_results.view(1,self.output_size)), dim=0)
+
+        return F.softmax(results, dim=1)
 
 
 # A simple function to train a net.

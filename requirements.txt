@@ -2,3 +2,4 @@ bcolz
 torch
 torchtest
 torchtext
+pytorch-ignite
