@@ -15,7 +15,7 @@ The setup for GloVe embeddings follows from this tutorial: https://medium.com/@m
 3. run `cd machine_learning && python create_glove_embedding.py`. This will process the word vectors and save the results into pkl files.
 
 
-## Testing Predictions
+## Trained a Model
 
 1. if not done already, run `pip install -r requirements.txt`
 2. run `python process_trees.py`. This creates a pickle file of 100 processed trees
