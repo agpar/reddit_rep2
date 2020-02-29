@@ -21,22 +21,12 @@ class GloveGAT(nn.Module):
         embedded = self.embedding(inputs, offsets).float()
         return self.gat(embedded, adj_matrix)
 
+
 def create_train_and_test(data, split_percent=0.9):
     train_len = int(len(model_data) * split_percent)
     sub_train, sub_valid = random_split(model_data, [train_len, len(model_data) - train_len])
     return sub_train, sub_valid
 
-def predict(model, data):
-    preds = []
-    for tree_data in data:
-        output = model(
-            tree_data["embedding"],
-            tree_data["offsets"],
-            tree_data["adj_matrix"]
-        )
-        pred = output.argmax(1)
-        preds.append(pred)
-    return preds
 
 def get_percent_positive(data):
     num_nodes = sum([len(tree["outputs"]) for tree in data])
@@ -47,40 +37,6 @@ def get_percent_positive(data):
     total_negative = sum(num_negative)
 
     return 1 - (total_negative / num_nodes)
-
-def train(model, data, lr=0.01):
-    # Metrics
-    train_loss = 0
-    train_acc = 0
-    num_nodes = sum([len(tree["outputs"]) for tree in data])
-
-    # model setup
-    optimizer = optim.SGD(model.parameters(), lr=lr)
-    criterion = nn.MSELoss()
-
-    tenth_iter = math.floor(len(data) / 10)
-    for i, tree_data in enumerate(data):
-        adj_matrix = tree_data["adj_matrix"]
-        inputs = tree_data["embedding"]
-        offsets = tree_data["offsets"]
-        cls = tree_data["outputs"]
-
-        optimizer.zero_grad()
-        output = model.forward(inputs, offsets, adj_matrix)
-        loss = criterion(output, cls)
-        train_loss += loss.item()
-        if (i % tenth_iter == 0):
-            print(loss)
-        loss.backward()
-        optimizer.step()
-
-        num_correct = (output.argmax(1) == cls.argmax(1)).sum().item()
-        train_acc += num_correct
-
-    overall_loss = train_loss / num_nodes
-    overall_acc = train_acc / num_nodes
-    print(f"loss: {overall_loss: .4f}")
-    print(f"acc: {overall_acc: .4f}")
 
 
 with open("sample_data.pkl", 'rb') as input:
@@ -141,5 +97,5 @@ def log_validation_results(trainer):
     print(f"Validation Results - Epoch: {epoch} "\
           f"Avg accuracy: {accuracy:.2f} Avg precision: {precision:.2f} Avg recall: {recall:.2f}")
 
-trainer.run(sub_train, max_epochs=5)
+trainer.run(sub_train, max_epochs=3)
 
