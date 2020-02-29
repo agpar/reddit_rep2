@@ -89,7 +89,7 @@ def combine_tree_values(trees):
 
 
 if __name__ == "__main__":
-# Load reddit data
+    # Load reddit data
     path_to_json_data = "reddit_data/RC_2006-12" # for example, use comments from 2006
     jds = JsonDataSource(path_to_json_data)
     rt = RedditTreeBuilder(jds)
@@ -97,8 +97,9 @@ if __name__ == "__main__":
     all_roots = list(jds.get_roots())
     all_trees = [rt.get_tree_rooted_at(c) for c in all_roots]
 
-    training_trees = all_trees[:100]
+    # only include trees that have at least one child
+    training_trees = list(filter(lambda tree: len(tree.children) > 0, all_trees))
     tree_data = [get_tree_values(tree) for tree in training_trees]
 
-    model_data = combine_tree_values(tree_data)
+    model_data = [combine_tree_values([tree]) for tree in tree_data]
     pickle.dump(model_data, open('machine_learning/sample_data.pkl', 'wb'))
