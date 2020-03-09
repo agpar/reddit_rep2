@@ -22,7 +22,9 @@ class GAT(nn.Module):
     def forward(self, X, adj):
         """Expecting to be passed the entire graph in X."""
         results = torch.empty(0, self.output_size * self.K)
-        for i, x in enumerate(X):
+        indices = adj.coalesce().indices()[0].unique() # only train on nodes with children
+        for i in indices:
+            x = X[i]
             multi_head_results = torch.empty(1, 0)
             for k in range(self.K):
                 one_head_result = F.leaky_relu(self.compute_embedding(X, i, k, adj))
@@ -63,7 +65,9 @@ class GATFinal(GAT):
         Instead of concatenating the results, they should be averaged for predictions
         """
         results = torch.empty(0, self.output_size)
-        for i, x in enumerate(X):
+        indices = adj.coalesce().indices()[0].unique() # only train on nodes with children
+        for i in indices:
+            x = X[i]
             multi_head_results = torch.empty(1, 0)
             for k in range(self.K):
                 one_head_result = self.compute_embedding(X, i, k, adj)
