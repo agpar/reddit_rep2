@@ -107,6 +107,6 @@ def log_validation_results(trainer):
     print(f"Validation Results - Epoch: {epoch} "\
           f"Avg accuracy: {accuracy:.2f} Avg precision: {precision:.2f} Avg recall: {recall:.2f}")
 
-# trainer.run(sub_train, max_epochs=5)
+trainer.run(sub_train, max_epochs=5)
 
 

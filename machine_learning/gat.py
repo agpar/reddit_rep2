@@ -23,9 +23,6 @@ class GAT(nn.Module):
     def forward(self, X, adj):
         """Expecting to be passed the entire graph in X."""
         results = torch.empty(0, self.output_size * self.K)
-        # indices = adj.coalesce().indices()[0].unique() # only train on nodes with children
-        # for i in indices:
-        #     x = X[i]
         for i, x in enumerate(X):
             multi_head_results = torch.empty(1, 0)
             for k in range(self.K):
@@ -68,9 +65,6 @@ class GATFinal(GAT):
         Instead of concatenating the results, they should be averaged for predictions
         """
         results = torch.empty(0, self.output_size)
-        # indices = adj.coalesce().indices()[0].unique() # only train on nodes with children
-        # for i in indices:
-        #     x = X[i]
         for i, x in enumerate(X):
             multi_head_results = torch.empty(1, 0)
             for k in range(self.K):
