@@ -4,39 +4,42 @@ import pickle
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data.dataset import random_split
 from ignite.engine import Engine, Events
 from ignite.metrics import Accuracy, Precision, Recall
 #
-from gat import GATFinal
-from glove_embedding import EMBED_DIM, word_vectors
+from gat import GAT, GATFinal
 from train_utils import assert_vars_change, create_train_and_test
 
-class GloveGAT(nn.Module):
-    def __init__(self):
+class BagOfWordsGAT(nn.Module):
+    def __init__(self, vectorizer):
         super().__init__()
-        self.embedding = nn.EmbeddingBag.from_pretrained(torch.tensor(word_vectors))
-        self.gat = GATFinal(EMBED_DIM, output_size=2, K=1)
+        self.vectorizer = vectorizer
+        self.gat1 = GAT(len(vectorizer.get_feature_names()), output_size=8, K=8)
+        self.gat2 = GATFinal(64, output_size=2, K=1)
 
-    def forward(self, inputs, offsets, adj_matrix):
-        embedded = self.embedding(inputs, offsets).float()
-        return self.gat(embedded, adj_matrix)
+    def forward(self, inputs, adj_matrix):
+        hidden = self.gat1(inputs, adj_matrix)
+        return self.gat2(hidden, adj_matrix)
 
-with open("sample_data.pkl", 'rb') as input:
+with open("sample_bow_data.pkl", 'rb') as input:
     model_data = pickle.load(input)
 
-model = GloveGAT()
+tree_data = model_data["tree_data"]
+vectorizer = model_data["vectorizer"]
+
+model = BagOfWordsGAT(vectorizer)
 optimizer = optim.SGD(model.parameters(), lr=0.0001)
 criterion = nn.MSELoss()
-sub_train, sub_valid = create_train_and_test(model_data)
+sub_train, sub_valid = create_train_and_test(tree_data)
 
 def train_step(model, criterion, optimizer, batch):
     adj_matrix = batch["adj_matrix"]
-    inputs = batch["embedding"]
-    offsets = batch["offsets"]
+    inputs = batch["bag_of_words"]
     targets = batch["outputs"]
 
     optimizer.zero_grad()
-    outputs = model(inputs, offsets, adj_matrix)
+    outputs = model(inputs, adj_matrix)
     loss = criterion(outputs, targets)
     loss.backward()
     optimizer.step()
@@ -49,15 +52,14 @@ def update_model(engine, batch):
 def predict_on_batch(engine, batch):
     model.eval()
     adj_matrix = batch["adj_matrix"]
-    inputs = batch["embedding"]
-    offsets = batch["offsets"]
+    inputs = batch["bag_of_words"]
     y = batch["outputs"].argmax(1)
     with torch.no_grad():
-        y_pred = model(inputs, offsets, adj_matrix).argmax(1)
+        y_pred = model(inputs, adj_matrix).argmax(1)
     return y_pred, y
 
-
 def test_variables_change(model, batch):
+    model.train()
     try:
         assert_vars_change(
             model=model,
@@ -70,9 +72,13 @@ def test_variables_change(model, batch):
         print("SUCCESS: variables changed")
     except Exception as e:
         print("FAILED: ", e)
-        exit(1)
+        exit()
 
-test_variables_change(model, model_data[0])
+def get_model_params(model):
+    params = [ np for np in model.named_parameters() if np[1].requires_grad ]
+    return params
+
+test_variables_change(model, tree_data[:3])
 
 trainer = Engine(update_model)
 evaluator = Engine(predict_on_batch)
@@ -101,5 +107,6 @@ def log_validation_results(trainer):
     print(f"Validation Results - Epoch: {epoch} "\
           f"Avg accuracy: {accuracy:.2f} Avg precision: {precision:.2f} Avg recall: {recall:.2f}")
 
-trainer.run(sub_train, max_epochs=10)
+# trainer.run(sub_train, max_epochs=5)
+
 

@@ -1,23 +1,30 @@
+import csv
 import pickle
+import string
 #
 import torch
+import nltk
 from torchtext.data.utils import get_tokenizer
 from sklearn.feature_extraction.text import CountVectorizer
+from nltk.corpus import stopwords
 #
 from reddit_data import RedditTreeBuilder, JsonDataSource
 from machine_learning.glove_embedding import UNKNOWN_WORD, glove, word2idx
+from text_preprocessing import stemming_tokenizer, get_parent_indices
 
-tokenizer = get_tokenizer("basic_english")
+nltk.download("stopwords")
 
+eng_stop_words = set(stemming_tokenizer(" ".join(stopwords.words("english")).replace("'","")))
 
 # helper method to create an adjacency matrix given a tree of RedditNodes
 def get_adj_matrix(tree):
     node_edges = []
     for node in tree:
         index = node.index
-        # node_edges.append([index, index]) # a node is its own neighbour
+        node_edges.append([index, index]) # a node is its own neighbour
         for child in node.children:
             node_edges.append([index, child.index])
+            node_edges.append([child.index, index])
 
     edges = torch.LongTensor(node_edges)
     ones = torch.ones(edges.size(0))
@@ -48,12 +55,12 @@ def get_bag_of_words(trees):
     texts = [get_tree_text(tree) for tree in trees]
     flat_texts = [text for tree_text in texts for text in tree_text]
 
-    vectorizer = CountVectorizer(stop_words="english")
+    vectorizer = CountVectorizer(stop_words=eng_stop_words, tokenizer=stemming_tokenizer, min_df=0.001)
     word_freq = vectorizer.fit_transform(flat_texts)
 
     num_nodes = [0] + [len(text) for text in texts]
     num_nodes = torch.tensor(num_nodes).cumsum(dim=0)
-    tensor_word_freq = [torch.tensor(word_freq[num_nodes[i]:num_nodes[i + 1]].toarray()) for i in range(len(texts))]
+    tensor_word_freq = [torch.FloatTensor(word_freq[num_nodes[i]:num_nodes[i + 1]].toarray()) for i in range(len(texts))]
 
     return tensor_word_freq, vectorizer
 
@@ -78,7 +85,7 @@ def get_bow_tree_values(trees):
         adj_matrix = get_adj_matrix(tree)
 
         outputs = get_output(tree)
-        parent_indices = adj_matrix.coalesce().indices()[0].unique()
+        parent_indices = get_parent_indices(adj_matrix)
         outputs = outputs[parent_indices]
 
         tree_values.append({
@@ -136,40 +143,40 @@ def combine_glove_tree_values(trees):
     }
     return model_data
 
+def print_hate_speech(trees):
+    hate_speech_path = "hate-speech-and-offensive-language/lexicons/refined_ngram_dict.csv"
+
+    hate_dict = {}
+    with open(hate_speech_path, 'r') as csvfile: 
+        reader = csv.DictReader(csvfile) 
+        for row in reader: 
+            hate_dict[row["ngram"]] = row["prophate"] 
+
+    for tree in trees: 
+        texts = get_tree_text(tree) 
+        for text in texts: 
+            if (any(hate in text for hate in hate_dict.keys())): 
+                print(text) 
+                print("_____")
 
 
+if __name__ == "__main__":
+    # Load reddit data
+    path_to_json_data = "reddit_data/RC_2006-12" # for example, use comments from 2006
+    jds = JsonDataSource(path_to_json_data)
+    rt = RedditTreeBuilder(jds)
 
-# if __name__ == "__main__":
-# Load reddit data
-path_to_json_data = "reddit_data/RC_2006-12" # for example, use comments from 2006
-jds = JsonDataSource(path_to_json_data)
-rt = RedditTreeBuilder(jds)
+    all_roots = list(jds.get_roots())
+    all_trees = [rt.get_tree_rooted_at(c) for c in all_roots]
 
-all_roots = list(jds.get_roots())
-all_trees = [rt.get_tree_rooted_at(c) for c in all_roots]
+    # only include trees that have at least one child
+    training_trees = list(filter(lambda tree: len(tree.children) > 2, all_trees))
 
-# only include trees that have at least one child
-training_trees = list(filter(lambda tree: len(tree.children) > 0, all_trees))
-# tree_data = [get_tree_values(tree) for tree in training_trees]
-# 
-# model_data = [combine_tree_values([tree]) for tree in tree_data]
-# pickle.dump(model_data, open('machine_learning/sample_data.pkl', 'wb'))
+    tree_data, vectorizer = get_bow_tree_values(training_trees)
+    model_data = {
+        "tree_data": tree_data,
+        "vectorizer": vectorizer
+    }
+    pickle.dump(model_data, open('machine_learning/sample_bow_data.pkl', 'wb'))
 
-with open("reddit_tree.pkl", 'rb') as input:
-    tree = pickle.load(input)
 
-# texts = get_tree_text(tree)
-# vectorizer = CountVectorizer(stop_words="english")
-# inputs = vectorizer.fit_transform(texts)
-trees = training_trees[:5]
-model_data, vectorizer = get_bow_tree_values(trees)
-
-# texts = [get_tree_text(tree) for tree in trees]
-# flat_texts = [text for tree_text in texts for text in tree_text]
-# 
-# vectorizer = CountVectorizer(stop_words="english")
-# word_freq = vectorizer.fit_transform(flat_texts)
-# 
-# num_nodes = [0] + [len(text) for text in texts]
-# num_nodes = torch.tensor(num_nodes).cumsum(dim=0)
-# tensor_word_freq = torch.tensor(word_freq.toarray())
