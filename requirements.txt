@@ -3,3 +3,7 @@ torch
 torchtest
 torchtext
 pytorch-ignite
+sklearn
+scipy
+nltk
+hatesonar

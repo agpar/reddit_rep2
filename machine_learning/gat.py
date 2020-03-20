@@ -5,11 +5,12 @@ import torch.optim as optim
 
 class GAT(nn.Module):
 
-    def __init__(self, input_size, output_size, K):
+    def __init__(self, input_size, output_size, K, dropout=0.6):
         super(GAT, self).__init__()
         self.input_size = input_size
         self.output_size = output_size
         self.K = K
+        self.dropout = dropout
 
         """
         Registering W and a as `Parameters` means that forward operations on them will be tracked
@@ -25,7 +26,7 @@ class GAT(nn.Module):
         for i, x in enumerate(X):
             multi_head_results = torch.empty(1, 0)
             for k in range(self.K):
-                one_head_result = F.leaky_relu(self.compute_embedding(X, i, k, adj))
+                one_head_result = F.elu(self.compute_embedding(X, i, k, adj))
                 multi_head_results = torch.cat((multi_head_results, one_head_result), dim=1)
             results = torch.cat((results, multi_head_results), dim=0)
         return results
@@ -46,6 +47,7 @@ class GAT(nn.Module):
         # Compute the weights given to each of the neighbours based on
         # the attention function.
         attention = F.softmax(F.leaky_relu(neighbour_cat_x.mm(a.t())), dim=0)
+        attention = F.dropout(attention, self.dropout, training=self.training)
 
         # Combine mapped neighbours based on attention weighting.
         return (mapped_neighbours.t().mm(attention)).t()
