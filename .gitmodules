@@ -3,4 +3,4 @@
 	url = https://github.com/t-davidson/hate-speech-and-offensive-language.git
 [submodule "pyGAT"]
 	path = pyGAT
-	url = https://github.com/Diego999/pyGAT.git
+	url = https://github.com/jpngfile/pyGAT.git

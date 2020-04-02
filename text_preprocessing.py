@@ -4,7 +4,7 @@ import torch
 from torchtext.data.utils import get_tokenizer
 from nltk.stem.porter import PorterStemmer
 
-tokenizer = get_tokenizer("basic_english")
+tokenizer = get_tokenizer("spacy")
 puncTable = str.maketrans('', '', string.punctuation)
 stemmer = PorterStemmer()
 
