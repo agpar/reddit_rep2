@@ -1,6 +1,6 @@
 from collections import deque
 
-from reddit_data.data_models import RedditComment
+from reddit_data_interface.data_models import RedditComment
 
 
 class RedditNode:

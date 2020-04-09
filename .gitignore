@@ -1,4 +1,5 @@
 __pycache__
 .idea
-reddit_data/*
+data/*
 *.sw[po]
+.env

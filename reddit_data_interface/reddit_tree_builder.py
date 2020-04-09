@@ -1,7 +1,7 @@
 import math
-from reddit_data.data_models import RedditComment
-from reddit_data.data_models.reddit_node import RedditNode
-from reddit_data.data_sources.data_source import DataSource
+from reddit_data_interface.data_models import RedditComment
+from reddit_data_interface.data_models.reddit_node import RedditNode
+from reddit_data_interface.data_sources.data_source import DataSource
 
 
 class RedditTreeBuilder:
