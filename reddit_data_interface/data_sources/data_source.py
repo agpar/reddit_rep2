@@ -15,5 +15,9 @@ class DataSource(ABC):
         pass
 
     @abstractmethod
-    def get_roots(self) -> Iterable[RedditComment]:
+    def iter_roots(self) -> Iterable[RedditComment]:
+        pass
+
+    @abstractmethod
+    def iter_parents(self) -> Iterable[RedditComment]:
         pass

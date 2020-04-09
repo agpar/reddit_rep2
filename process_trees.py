@@ -166,7 +166,7 @@ if __name__ == "__main__":
     jds = JsonDataSource(path_to_json_data)
     rt = RedditTreeBuilder(jds)
 
-    all_roots = list(jds.get_roots())
+    all_roots = list(jds.iter_roots())
     all_trees = [rt.get_tree_rooted_at(c) for c in all_roots]
 
     # only include trees that have at least one child

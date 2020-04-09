@@ -29,7 +29,13 @@ class JsonDataSource(DataSource):
     def get_children(self, parent_id: str) -> Collection[RedditComment]:
         return self.comments_by_parent_id.get(parent_id, set())
 
-    def get_roots(self) -> Iterable[RedditComment]:
+    def iter_parents(self) -> Iterable[RedditComment]:
+        for key in self.comments_by_parent_id.keys():
+            comment = self.comments_by_id.get(key)
+            if comment:
+                yield comment
+
+    def iter_roots(self) -> Iterable[RedditComment]:
         for comment in self.comments_by_id.values():
             if comment.is_root():
                 yield comment

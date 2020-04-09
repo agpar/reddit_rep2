@@ -8,5 +8,5 @@ path_to_json_data = "data/RC_2006-12"  # for example, use comments from 2006
 jds = JsonDataSource(path_to_json_data)
 rt = RedditTreeBuilder(jds)
 
-all_roots = list(jds.get_roots())
+all_roots = list(jds.iter_roots())
 all_trees = [rt.get_tree_rooted_at(c) for c in all_roots]
