@@ -11,10 +11,11 @@ class JsonDataSource(DataSource):
     Load an entire file of Reddit comments into memory and creates indexes with dicts.
     """
 
-    def __init__(self, data_file: str):
+    def __init__(self, data_files: Iterable[str]):
         self.comments_by_id = {}
         self.comments_by_parent_id = defaultdict(set)
-        self._load_data(data_file)
+        for data_file in data_files:
+            self._load_data(data_file)
 
     def _load_data(self, data_file: str):
         with open(data_file, 'r') as f:

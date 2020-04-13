@@ -163,7 +163,7 @@ def print_hate_speech(trees):
 if __name__ == "__main__":
     # Load reddit data
     path_to_json_data = "data/RC_2006-12"  # for example, use comments from 2006
-    jds = JsonDataSource(path_to_json_data)
+    jds = JsonDataSource([path_to_json_data])
     rt = RedditTreeBuilder(jds)
 
     all_roots = list(jds.iter_roots())

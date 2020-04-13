@@ -5,7 +5,7 @@ from reddit_data_interface import RedditTreeBuilder, JsonDataSource
 # 3. Look at example below on how to load a filtered json file and iterate over trees of comments.
 
 path_to_json_data = "data/RC_2006-12"  # for example, use comments from 2006
-jds = JsonDataSource(path_to_json_data)
+jds = JsonDataSource([path_to_json_data])
 rt = RedditTreeBuilder(jds)
 
 all_roots = list(jds.iter_roots())
