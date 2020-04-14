@@ -8,6 +8,8 @@ from nltk.corpus import stopwords
 import numpy as np
 
 from machine_learning.feature_extraction import get_tree_text
+from machine_learning.batch_combiner import combine_glove_tree_values
+from machine_learning.text_embedders.text_embedder import TextEmbedder
 
 UNKNOWN_WORD = "[unk]"
 
@@ -15,7 +17,7 @@ _tokenizer = get_tokenizer("spacy")
 _eng_stop_words = set(_tokenizer(" ".join(stopwords.words("english")).replace("'","")))
 
 
-class GloveEmbedder:
+class GloveEmbedder(TextEmbedder):
     def __init__(self, glove_path, dim):
         self.glove_path = glove_path
         self.dim = dim
@@ -74,3 +76,9 @@ class GloveEmbedder:
         texts = get_tree_text(tree)
         embedding = self.get_tree_text_embedding(texts)
         return embedding
+
+    def get_embeddings(self, trees):
+        [self.get_glove_embedding(tree) for tree in trees]
+
+    def batch_trees(self, trees):
+        return combine_glove_tree_values(trees)
