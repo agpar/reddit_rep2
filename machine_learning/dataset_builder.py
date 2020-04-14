@@ -3,9 +3,10 @@ import random
 from machine_learning.experiment_types import *
 from machine_learning.data_balance import balance_trees
 from machine_learning.adjacency_matrix import get_adj_matrix
-from machine_learning.bag_of_words import get_bag_of_words
+from machine_learning.bow_embedding import BowEmbedder
+from machine_learning.glove_embedding import GloveEmbedder
 from machine_learning.feature_extraction import get_output
-from machine_learning.batch_combiner import combine_bow_tree_values
+from machine_learning.batch_combiner import combine_bow_tree_values, combine_glove_tree_values
 
 
 # Methods for outputs
@@ -23,21 +24,32 @@ def get_model_data(
     # Create adjacency matrices
     adj_matrices = [get_adj_matrix(tree, is_undirected, has_parent_loop, has_parent_edges) for tree in balanced_trees]
     # Create inputs
-    bag_of_words, _ = get_bag_of_words(balanced_trees, vectorizer_type)
+    if vectorizer_type in (VectorizerType.COUNT, VectorizerType.TFIDF):
+        embeddings, _ = BowEmbedder().get_bow_embedding(balanced_trees, vectorizer_type)
+    else:
+        embedder = GloveEmbedder("/content/drive/My Drive/glove", 50)
+        embeddings = [embedder.get_glove_embedding(tree) for tree in balanced_trees]
     # Create outputs
     outputs = [get_output(tree, output_type) for tree in balanced_trees]
     # Zip all data together
     tree_data = [{
         "adj_matrix": adj_mat,
-        "bag_of_words": bow,
+        "embedding": emb,
         "outputs": output
-    } for adj_mat, bow, output in zip(adj_matrices, bag_of_words, outputs)]
+    } for adj_mat, emb, output in zip(adj_matrices, embeddings, outputs)]
     # Scramble the data
     random.shuffle(tree_data)
     # Split into train and balanced valid set
     # Batch trees together
-    model_data = [
-        combine_bow_tree_values(tree_data[i:(i + batch_size)])
-        for i in range(0, len(tree_data), batch_size)
-    ]
+    if vectorizer_type in (VectorizerType.COUNT, VectorizerType.TFIDF):
+        model_data = [
+            combine_bow_tree_values(tree_data[i:(i + batch_size)])
+            for i in range(0, len(tree_data), batch_size)
+        ]
+    else:
+        model_data = [
+            combine_glove_tree_values(tree_data[i:(i + batch_size)])
+            for i in range(0, len(tree_data), batch_size)
+        ]
+
     return model_data
