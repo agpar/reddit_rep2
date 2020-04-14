@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Collection, Iterable
 
-from reddit_data.data_models import RedditComment
+from reddit_data_interface.data_models import RedditComment
 
 
 class DataSource(ABC):
@@ -15,5 +15,9 @@ class DataSource(ABC):
         pass
 
     @abstractmethod
-    def get_roots(self) -> Iterable[RedditComment]:
+    def iter_roots(self) -> Iterable[RedditComment]:
+        pass
+
+    @abstractmethod
+    def iter_parents(self) -> Iterable[RedditComment]:
         pass

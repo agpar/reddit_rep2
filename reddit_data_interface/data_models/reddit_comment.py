@@ -1,6 +1,6 @@
 import re
 
-from reddit_data.data_parsing_exception import DataParsingException
+from reddit_data_interface.data_parsing_exception import DataParsingException
 
 
 class RedditComment():
