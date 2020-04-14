@@ -42,7 +42,7 @@ class GloveEmbedder(TextEmbedder):
 
         # Add an extra word for unknown vocab. It is the mean of all vectors
         # https://stackoverflow.com/questions/49239941/what-is-unk-in-the-pretrained-glove-vector-files-e-g-glove-6b-50d-txt
-        avg_vec = np.mean(vectors[1:].reshape((400001, 50)), axis=0)
+        avg_vec = np.mean(vectors[1:].reshape((-1, 50)), axis=0)
         unknown_word = "[unk]" # Note: "unk" and "<unk>" are actually words in GloVe
 
         word2idx[unknown_word] = len(words)
@@ -50,15 +50,15 @@ class GloveEmbedder(TextEmbedder):
         vectors.append(avg_vec)
 
         # Save the results
-        vectors = bcolz.carray(vectors[1:].reshape((400002, 50)), rootdir=f'{self.glove_path}/6B.{self.dim}.dat', mode='w')
+        vectors = bcolz.carray(vectors[1:].reshape((-1, 50)), rootdir=f'{self.glove_path}/6B.{self.dim}.dat', mode='w')
         vectors.flush()
         pickle.dump(words, open(f'{self.glove_path}/6B.{self.dim}_words.pkl', 'wb'))
         pickle.dump(word2idx, open(f'{self.glove_path}/6B.{self.dim}_idx.pkl', 'wb'))
 
     def load(self):
-        test_path = f'{self.glove_path}/6B.{self.dim}.dat'
+        test_path = f'{self.glove_path}/6B.{self.dim}_words.pkl'
         if not os.path.exists(test_path):
-            raise Exception("fGLOVE .dat file does not exit. Either check the glove_path or run setup(): {test_path}")
+            raise Exception(f"GLOVE pickles do not exit. Either check the glove_path or run setup(): {test_path}")
         self.word_vectors = bcolz.open(f'{self.glove_path}/6B.{self.dim}.dat')[:]
         self.words = pickle.load(open(f'{self.glove_path}/6B.{self.dim}_words.pkl', 'rb'))
         self.word2idx = pickle.load(open(f'{self.glove_path}/6B.{self.dim}_idx.pkl', 'rb'))
@@ -78,7 +78,7 @@ class GloveEmbedder(TextEmbedder):
         return embedding
 
     def get_embeddings(self, trees):
-        [self.get_glove_embedding(tree) for tree in trees]
+        return [self.get_glove_embedding(tree) for tree in trees]
 
     def batch_trees(self, trees):
         return combine_glove_tree_values(trees)
