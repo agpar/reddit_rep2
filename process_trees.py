@@ -9,7 +9,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from nltk.corpus import stopwords
 #
 from reddit_data_interface import RedditTreeBuilder, JsonDataSource
-from machine_learning.glove_embedding import UNKNOWN_WORD, glove, word2idx
+from machine_learning.glove_embedder import UNKNOWN_WORD, glove, word2idx
 from text_preprocessing import stemming_tokenizer, get_parent_indices
 
 nltk.download("stopwords")
