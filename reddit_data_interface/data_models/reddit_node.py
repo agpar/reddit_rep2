@@ -7,6 +7,8 @@ class RedditNode:
     def __init__(self, comment: RedditComment):
         self.comment = comment
         self.index = None
+        self.ch_feats = None
+        self.st_feats = None
         self.children = []
 
     def __iter__(self):

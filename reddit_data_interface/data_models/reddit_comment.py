@@ -5,7 +5,7 @@ from reddit_data_interface.data_parsing_exception import DataParsingException
 
 class RedditComment():
     __slots__ = ('id', 'author', 'subreddit', 'score', 'body',  'parent_id', 'gilded', 'stickied', 'retrieved_on',
-                 'created_utc', 'link_id', 'controversiality')
+                 'created_utc', 'link_id', 'controversiality', 'feats', 'blob')
 
     COMMENT_ID_PREFIX = 't1_'
     LINK_ID_PREFIX = 't3_'
@@ -26,6 +26,8 @@ class RedditComment():
         rc.gilded = comment['gilded']
         rc.link_id = comment['link_id']
         rc.controversiality = comment['controversiality']
+        rc.feats = None
+        rc.blob = None
         return rc
 
     @staticmethod
