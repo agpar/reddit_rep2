@@ -8,6 +8,10 @@ from machine_learning.experiment_types import *
 from machine_learning.language_collections import hate_dict
 
 
+def get_scores(tree):
+    return [node.comment.score for node in tree]
+
+
 def get_tree_text(tree):
     return [node.comment.body for node in tree]
 
