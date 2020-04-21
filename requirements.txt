@@ -7,3 +7,6 @@ sklearn
 scipy
 nltk
 hatesonar
+profanity-check
+textblob
+spacy

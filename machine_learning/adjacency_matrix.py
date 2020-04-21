@@ -23,6 +23,7 @@ def get_adj_matrix(
         is_undirected=True,
         has_parent_loop=False,  # If the root node has an edge to itself
         has_parent_edges=True,  # If the parent's children are connected to the parent
+        has_child_edges = True, # If the children are connected to the parent
 ):
     node_edges = []
     for node in tree:
@@ -40,7 +41,11 @@ def get_adj_matrix(
 
     # Remove all edges directed to the parent node
     if (not has_parent_edges):
-        node_edges = list(filter(lambda edge: edge[1] != 0, node_edges))
+        node_edges = list(filter(lambda edge: edge[0] == 0 or edge[1] != 0, node_edges))
+
+    # Remove all child edges from the parent
+    if (not has_child_edges):
+        node_edges = list(filter(lambda edge: edge[1] == 0 or edge[0] != 0, node_edges))
 
     edges = torch.LongTensor(node_edges)
     ones = torch.ones(edges.size(0))
